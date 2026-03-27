@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}DataVault - 总览{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:20px">数据总览</h1>
+
+<!-- 统计卡片 -->
+<div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+        <div class="label">🔗 链接总数</div>
+        <div class="value" id="stat-links-total">-</div>
+    </div>
+    <div class="stat-card green">
+        <div class="label">💰 本月消费</div>
+        <div class="value" id="stat-expenses-month">-</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="label">📊 链接分类</div>
+        <div class="value" id="stat-links-categories">-</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">🏷️ 消费分类</div>
+        <div class="value" id="stat-expenses-categories">-</div>
+    </div>
+</div>
+
+<!-- 分析视图 -->
+<div class="chart-grid">
+
+    <!-- 链接来源分布 -->
+    <div class="card">
+        <h2>📊 链接来源分布</h2>
+        <div id="links-by-source" class="bar-list"></div>
+    </div>
+
+    <!-- 链接分类 -->
+    <div class="card">
+        <h2>🏷️ 链接分类</h2>
+        <div id="links-by-category" class="bar-list"></div>
+    </div>
+
+    <!-- 消费分类 -->
+    <div class="card">
+        <h2>💸 消费分类（月）</h2>
+        <div id="expenses-by-category" class="bar-list"></div>
+    </div>
+
+    <!-- 消费趋势 -->
+    <div class="card">
+        <h2>📈 月度消费趋势</h2>
+        <div id="expenses-trend" class="bar-list"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+async function loadStats() {
+    const stats = await api("/api/stats");
+    const links = stats.links;
+    const expenses = stats.expenses;
+
+    // 统计卡片
+    document.getElementById("stat-links-total").textContent = links.total;
+    document.getElementById("stat-links-categories").textContent = links.by_category.length;
+    document.getElementById("stat-expenses-month").textContent = "¥" + expenses.total.toLocaleString();
+    document.getElementById("stat-expenses-categories").textContent = expenses.by_category.length;
+
+    // 链接来源
+    renderBars("links-by-source", links.by_source, "source", "count", links.total);
+    // 链接分类
+    renderBars("links-by-category", links.by_category, "category", "count", links.total);
+    // 消费分类
+    renderBars("expenses-by-category", expenses.by_category, "category", "total", expenses.total);
+    // 消费趋势
+    renderBars("expenses-trend", expenses.by_month.slice(0,6).reverse(), "month", "total", expenses.by_month[0]?.total || 1);
+}
+
+function renderBars(containerId, data, labelKey, valueKey, maxValue) {
+    const container = document.getElementById(containerId);
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="empty">暂无数据</div>';
+        return;
+    }
+    container.innerHTML = data.map(item => {
+        const value = item[valueKey];
+        const pct = Math.round((value / maxValue) * 100);
+        const label = item[labelKey] || "未知";
+        return `<div class="bar-item">
+            <div class="bar-label">${label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="bar-value">${typeof value === 'number' && value > 100 ? '¥' + Math.round(value).toLocaleString() : value}</div>
+        </div>`;
+    }).join("");
+}
+
+loadStats();
+</script>
+{% endblock %}
