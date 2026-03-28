@@ -89,7 +89,94 @@ def links_page():
 def expenses_page():
     return render_template("expenses.html")
 
+@app.route("/ports")
+def ports_page():
+    return render_template("ports.html")
+
+@app.route("/settings")
+def settings_page():
+    return render_template("settings.html")
+
+@app.route("/api/ports")
+def api_ports():
+    import subprocess
+    import re
+
+    # Run ss -tlnp
+    ss_result = subprocess.run(
+        ["ss", "-tlnp"],
+        capture_output=True, text=True, timeout=10
+    )
+
+    # Build a pid->process map from ps aux
+    ps_result = subprocess.run(
+        ["ps", "aux"],
+        capture_output=True, text=True, timeout=10
+    )
+    pid_map = {}
+    for line in ps_result.stdout.strip().split("\n"):
+        parts = line.split(None, 10)
+        if len(parts) < 11:
+            continue
+        pid = parts[1]
+        cmd = parts[10] if len(parts) > 10 else ""
+        proc = cmd.split()[0] if cmd.strip() else ""
+        if "/" in proc:
+            proc = proc.split("/")[-1]
+        if proc and not proc.startswith("["):
+            pid_map[pid] = proc
+
+    # Get additional process info via lsof for listening ports
+    lsof_result = subprocess.run(
+        ["lsof", "-i", "-P", "-n"],
+        capture_output=True, text=True, timeout=10
+    )
+    lsof_map = {}  # port -> (process, pid)
+    for line in lsof_result.stdout.strip().split("\n"):
+        parts = line.split()
+        if len(parts) < 9:
+            continue
+        # lsof format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
+        # NAME like: *:6806 or 127.0.0.1:6806
+        name = parts[-1] if parts else ""
+        port_match = re.search(r':(\d+)$', name)
+        if port_match:
+            port = port_match.group(1)
+            proc = parts[0]
+            pid = parts[1]
+            if port not in lsof_map:
+                lsof_map[port] = (proc, pid)
+
+    # Parse ss output
+    ports = []
+    lines = ss_result.stdout.strip().split("\n")
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        port_match = re.search(r':(\d+)\s', line)
+        port = port_match.group(1) if port_match else ""
+        proc_match = re.search(r'pid=(\d+)', line)
+        pid = proc_match.group(1) if proc_match else ""
+        # Priority: ss data > ps map > lsof
+        if pid:
+            process = pid_map.get(pid, "")
+        else:
+            proc_name_match = re.search(r'users:\(\("([^"]+)",', line)
+            process = proc_name_match.group(1) if proc_name_match else ""
+        # Fill from lsof if still missing
+        if not process and port in lsof_map:
+            process, pid = lsof_map[port]
+        state = line.split()[0] if line.split() else ""
+        ports.append({
+            "port": port,
+            "state": state,
+            "process": process,
+            "pid": pid,
+        })
+
+    return jsonify({"ports": ports})
+
 if __name__ == "__main__":
     print("DataVault 启动中...")
-    print("访问 http://localhost:5188")
-    app.run(host="0.0.0.0", port=5188, debug=True)
+    print("访问 http://localhost:18001")
+    app.run(host="0.0.0.0", port=18001, debug=True)

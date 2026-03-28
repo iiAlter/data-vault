@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}DataVault - 端口监控{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>🔌 端口监控</h1>
+    <button onclick="loadPorts()" style="background:var(--accent)">🔄 刷新</button>
+</div>
+
+<!-- 概览 -->
+<div class="stats-grid" style="margin-bottom:24px">
+    <div class="stat-card purple noisy">
+        <div class="card-bg"></div>
+        <div class="label">监听端口</div>
+        <div class="value" id="stat-listen">-</div>
+        <div class="sub">当前监听中</div>
+    </div>
+    <div class="stat-card green noisy">
+        <div class="card-bg"></div>
+        <div class="label">DataVault</div>
+        <div class="value" id="stat-datavault" style="font-size:16px">-</div>
+        <div class="sub">服务状态</div>
+    </div>
+    <div class="stat-card orange noisy">
+        <div class="card-bg"></div>
+        <div class="label">Siyuan</div>
+        <div class="value" id="stat-siyuan" style="font-size:16px">-</div>
+        <div class="sub">服务状态</div>
+    </div>
+</div>
+
+<!-- 端口列表 -->
+<div class="card">
+    <div class="card-header">
+        <h2>📋 端口占用详情</h2>
+        <span id="update-time" style="font-size:12px;color:var(--text-muted)"></span>
+    </div>
+    <div id="ports-table"></div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const KNOWN_SERVICES = {
+    "18001": "DataVault",
+    "6806": "Siyuan API",
+    "3000": "Mioclaw Gateway",
+    "9229": "Claude Code",
+};
+
+const PORT_RANGE = [17000, 20000];
+
+const SERVICE_STATUS = {
+    "18001": { el: "stat-datavault", ok: "✅ 运行中", fail: "❌ 未启动" },
+    "6806": { el: "stat-siyuan", ok: "✅ 运行中", fail: "❌ 未启动" },
+};
+
+async function loadPorts() {
+    const data = await api("/api/ports");
+    const ports = data.ports || [];
+    const container = document.getElementById("ports-table");
+
+    // 全部监听端口（用于状态检查，不受范围限制）
+    const allListen = ports.filter(p => p.state === "LISTEN");
+    const listenPortsSet = new Set(allListen.map(p => p.port));
+
+    // 过滤：只显示 17000-20000 范围的端口
+    const listenPorts = allListen.filter(p => {
+        const portNum = parseInt(p.port);
+        return portNum >= PORT_RANGE[0] && portNum <= PORT_RANGE[1];
+    });
+
+    // 统计全部监听端口数
+    document.getElementById("stat-listen").textContent = allListen.length;
+    for (const [port, info] of Object.entries(SERVICE_STATUS)) {
+        document.getElementById(info.el).textContent = listenPortsSet.has(port) ? info.ok : info.fail;
+    }
+
+    // 渲染表格
+    if (listenPorts.length === 0) {
+        container.innerHTML = '<div class="empty"><div class="empty-icon">🔌</div>暂无监听端口（当前显示范围：17000-20000）</div>';
+    } else {
+        container.innerHTML = `
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                    <tr style="border-bottom:2px solid var(--border)">
+                        <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:600">端口</th>
+                        <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:600">服务</th>
+                        <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:600">进程</th>
+                        <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:600">PID</th>
+                        <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:600">状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${listenPorts.map(p => {
+                        const service = KNOWN_SERVICES[p.port] || "—";
+                        const isKnown = KNOWN_SERVICES[p.port];
+                        const hasProcInfo = p.process || p.pid;
+                        return `<tr style="border-bottom:1px solid var(--border)">
+                            <td style="padding:10px 12px">
+                                <span style="font-weight:700;color:${isKnown ? 'var(--primary)' : 'var(--text)'}">:${p.port}</span>
+                            </td>
+                            <td style="padding:10px 12px;color:var(--text-secondary)">${service}</td>
+                            <td style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:${hasProcInfo ? 'var(--text-secondary)' : 'var(--text-muted)'}">${p.process || (hasProcInfo ? "—" : "🔒")}</td>
+                            <td style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted)">${p.pid || "—"}</td>
+                            <td style="padding:10px 12px"><span class="tag">${p.state}</span></td>
+                        </tr>`;
+                    }).join("")}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted)">
+            💡 提示：显示 🔒 表示该端口属于其他用户进程，需 root 权限才能查看详情。当前显示范围：17000-20000。
+        </div>`;
+    }
+
+    document.getElementById("update-time").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN");
+}
+
+loadPorts();
+// 每30秒自动刷新
+setInterval(loadPorts, 30000);
+</script>
+{% endblock %}

@@ -1,61 +1,75 @@
 {% extends "base.html" %}
-{% block title %}DataVault - 链接收藏{% endblock %}
+{% block title %}DataVault - 收藏{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-    <h1>🔗 链接收藏</h1>
-    <div style="color:#888; font-size:13px">
-        共 <span id="total-count">-</span> 条
+
+<div class="page-header">
+    <h1>📂 收藏</h1>
+    <div style="font-size:13px; color:var(--text-muted)">
+        共 <span id="total-count" class="money" style="color:var(--primary)">-</span> 条
     </div>
 </div>
 
 <!-- 筛选 -->
-<div class="card" style="margin-bottom:15px">
-    <div style="display:flex; gap:10px; flex-wrap:wrap">
-        <input type="text" id="search-input" placeholder="搜索标题/摘要/URL..." 
-               style="flex:1; padding:8px 12px; border:1px solid #ddd; border-radius:8px; min-width:200px">
-        <select id="category-filter" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px">
+<div class="card" style="margin-bottom:20px">
+    <div class="filter-bar">
+        <input type="text" id="search-input" placeholder="搜索标题 / 摘要...">
+        <select id="category-filter" style="display:none">
             <option value="">全部分类</option>
         </select>
-        <button onclick="loadLinks()" style="padding:8px 16px; background:#667eea; color:#fff; border:none; border-radius:8px; cursor:pointer">搜索</button>
+        <button onclick="loadLinks()">🔍 搜索</button>
     </div>
+    <!-- 分类标签 -->
+    <div id="category-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
 </div>
 
 <!-- 链接列表 -->
 <div class="item-list" id="links-list">
-    <div class="empty">加载中...</div>
+    <div class="empty"><div class="empty-icon">📭</div>加载中...</div>
 </div>
 {% endblock %}
 
 {% block script %}
 <script>
+let activeCategory = "";
+
 async function loadLinks() {
     const search = document.getElementById("search-input").value;
-    const category = document.getElementById("category-filter").value;
     let url = "/api/links?limit=100";
     if (search) url += "&search=" + encodeURIComponent(search);
-    if (category) url += "&category=" + encodeURIComponent(category);
+    if (activeCategory) url += "&category=" + encodeURIComponent(activeCategory);
 
     const data = await api(url);
     const container = document.getElementById("links-list");
     document.getElementById("total-count").textContent = data.length;
 
     if (data.length === 0) {
-        container.innerHTML = '<div class="empty">暂无收藏</div>';
+        container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无收藏</div>';
         return;
     }
 
     container.innerHTML = data.map(link => {
-        const tags = link.tags ? JSON.parse(link.tags) : [];
+        let tags = [];
+        try { tags = JSON.parse(link.tags || "[]"); } catch(e) {}
         const time = new Date(link.collected_at).toLocaleDateString("zh-CN");
+        const isUrl = link.url.startsWith("http://") || link.url.startsWith("https://");
+
+        const titleHtml = isUrl
+            ? `<a href="${link.url}" target="_blank" rel="noopener">${link.title}</a>`
+            : `<span style="cursor:default">${link.title}</span>`;
+        const detailHtml = isUrl
+            ? ``
+            : `<div class="code-block" style="background:#f0f0f5;padding:10px 14px;border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace;font-size:13px;word-break:break-all;margin-top:10px;color:var(--text)">${link.url}</div>`;
+
         return `<div class="item">
             <div class="title">
-                <a href="${link.url}" target="_blank" style="color:#333; text-decoration:none">${link.title}</a>
-                <span style="font-size:12px; color:#888; margin-left:8px">${link.source || ""}</span>
+                ${titleHtml}
+                ${link.source ? `<span style="font-size:11px;color:var(--text-muted);font-weight:400;margin-left:8px">${link.source}</span>` : ""}
             </div>
-            <div class="desc">${link.summary || ""}</div>
-            <div class="meta" style="margin-top:8px">
-                ${tags.map(t => `<span class="tag">#${t}</span>`).join("")}
-                <span style="margin-left:auto">${time}</span>
+            ${link.summary ? `<div class="desc">${link.summary}</div>` : ""}
+            ${detailHtml}
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+                ${tags.length > 0 ? tags.map(t => `<span class="tag">#${t}</span>`).join("") : ""}
+                <span style="font-size:11px;color:var(--text-muted);margin-left:auto">📅 ${time}</span>
             </div>
         </div>`;
     }).join("");
@@ -63,18 +77,35 @@ async function loadLinks() {
 
 async function loadCategories() {
     const stats = await api("/api/links/stats");
-    const select = document.getElementById("category-filter");
-    stats.by_category.forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat.category;
-        opt.textContent = `${cat.category} (${cat.count})`;
-        select.appendChild(opt);
+    const container = document.getElementById("category-tags");
+    const total = stats.total || 0;
+
+    let html = "";
+    // 全部
+    const allActive = activeCategory === "";
+    html += `<span class="tag cat-tag ${allActive ? 'active' : ''}" data-cat="">全部 (${total})</span>`;
+    // 各分类
+    (stats.by_category || []).forEach(cat => {
+        const isActive = activeCategory === cat.category;
+        html += `<span class="tag cat-tag ${isActive ? 'active' : ''}" data-cat="${cat.category}">${cat.category} (${cat.count})</span>`;
     });
+    container.innerHTML = html;
 }
 
-// 回车搜索
+function setCategory(cat) {
+    activeCategory = cat;
+    loadLinks();
+    loadCategories();
+}
+
 document.getElementById("search-input").addEventListener("keyup", e => {
     if (e.key === "Enter") loadLinks();
+});
+
+// 事件委托：分类标签点击
+document.addEventListener("click", e => {
+    const el = e.target.closest(".cat-tag");
+    if (el) setCategory(el.dataset.cat || "");
 });
 
 loadLinks();

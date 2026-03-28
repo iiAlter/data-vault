@@ -1,81 +1,88 @@
 {% extends "base.html" %}
 {% block title %}DataVault - 消费记录{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+
+<div class="page-header">
     <h1>💰 消费记录</h1>
-    <div style="color:#888; font-size:13px">
-        本月合计：¥<span id="month-total">-</span>
+    <div style="font-size:13px; color:var(--text-muted)">
+        本月合计：<span id="month-total" class="money expense">¥-</span>
     </div>
 </div>
 
 <!-- 筛选 -->
-<div class="card" style="margin-bottom:15px">
-    <div style="display:flex; gap:10px; flex-wrap:wrap">
-        <input type="month" id="month-filter"
-               style="padding:8px 12px; border:1px solid #ddd; border-radius:8px">
-        <select id="category-filter" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px">
-            <option value="">全部分类</option>
-        </select>
-        <button onclick="loadExpenses()" style="padding:8px 16px; background:#667eea; color:#fff; border:none; border-radius:8px; cursor:pointer">搜索</button>
+<div class="card" style="margin-bottom:20px">
+    <div class="filter-bar">
+        <input type="month" id="month-filter">
+        <button onclick="loadExpenses()">🔍 搜索</button>
     </div>
+    <div id="category-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
 </div>
 
 <!-- 消费列表 -->
-<div class="item-list" id="expenses-list">
-    <div class="empty">加载中...</div>
+<div id="expenses-list">
+    <div class="empty"><div class="empty-icon">💸</div>加载中...</div>
 </div>
 {% endblock %}
 
 {% block script %}
 <script>
+let activeCategory = "";
+
 async function loadExpenses() {
     const month = document.getElementById("month-filter").value;
-    const category = document.getElementById("category-filter").value;
     let url = "/api/expenses?limit=100";
     if (month) url += "&month=" + month;
-    if (category) url += "&category=" + encodeURIComponent(category);
+    if (activeCategory) url += "&category=" + encodeURIComponent(activeCategory);
 
     const [data, stats] = await Promise.all([
         api(url),
         api("/api/expenses/stats" + (month ? "?month=" + month : ""))
     ]);
 
-    document.getElementById("month-total").textContent = stats.total.toLocaleString();
+    document.getElementById("month-total").textContent = "¥" + (stats.total || 0).toLocaleString();
     const container = document.getElementById("expenses-list");
 
     if (data.length === 0) {
-        container.innerHTML = '<div class="empty">暂无消费记录</div>';
+        container.innerHTML = '<div class="empty"><div class="empty-icon">💸</div>暂无消费记录</div>';
         return;
     }
 
-    container.innerHTML = data.map(item => {
-        const time = new Date(item.date).toLocaleDateString("zh-CN");
-        return `<div class="item">
-            <div style="display:flex; justify-content:space-between; align-items:center">
-                <div>
-                    <div class="title">${item.description || item.category}</div>
-                    <div class="meta">${item.category} · ${time}</div>
-                </div>
-                <div style="font-size:20px; font-weight:bold; color:#f5576c">
-                    -¥${item.amount.toLocaleString()}
-                </div>
+    container.innerHTML = '<div class="item-list">' + data.map(item => {
+        const time = new Date(item.date).toLocaleDateString("zh-CN", {month:"short", day:"numeric"});
+        return `<div class="expense-item">
+            <div class="left">
+                <div class="desc">${item.description || item.category}</div>
+                <div class="meta">${item.category} · ${time}</div>
             </div>
+            <div class="amount">-¥${Number(item.amount).toLocaleString()}</div>
         </div>`;
-    }).join("");
+    }).join("") + "</div>";
 }
 
 async function loadCategories() {
     const stats = await api("/api/expenses/stats");
-    const select = document.getElementById("category-filter");
-    stats.by_category.forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat.category;
-        opt.textContent = `${cat.category} (¥${Math.round(cat.total).toLocaleString()})`;
-        select.appendChild(opt);
+    const container = document.getElementById("category-tags");
+    const month = document.getElementById("month-filter").value;
+
+    let html = `<span class="tag cat-tag ${activeCategory === "" ? "active" : ""}" data-cat="">全部</span>`;
+    (stats.by_category || []).forEach(cat => {
+        const isActive = activeCategory === cat.category;
+        html += `<span class="tag cat-tag ${isActive ? "active" : ""}" data-cat="${cat.category}">${cat.category}</span>`;
     });
+    container.innerHTML = html;
 }
 
-// 默认显示当月
+function setCategory(cat) {
+    activeCategory = cat;
+    loadExpenses();
+    loadCategories();
+}
+
+document.addEventListener("click", e => {
+    const el = e.target.closest(".cat-tag");
+    if (el) setCategory(el.dataset.cat || "");
+});
+
 const now = new Date();
 document.getElementById("month-filter").value = now.toISOString().slice(0, 7);
 

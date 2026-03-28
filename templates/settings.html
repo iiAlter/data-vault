@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}DataVault - 设置{% endblock %}
+{% block content %}
+
+<h1>⚙️ 设置</h1>
+
+<div class="card">
+    <h2>外观</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg);border-radius:var(--radius-sm)">
+        <div>
+            <div style="font-weight:600;font-size:14px">🌙 深色模式</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">切换明暗主题</div>
+        </div>
+        <label style="position:relative;width:44px;height:24px;cursor:pointer">
+            <input type="checkbox" id="theme-dark" style="opacity:0;width:0;height:0;position:absolute" onchange="toggleTheme(this)">
+            <span id="theme-track" style="position:absolute;inset:0;border-radius:99px;background:var(--border);transition:background 0.2s">
+                <span id="theme-thumb" style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></span>
+            </span>
+        </label>
+    </div>
+</div>
+
+<div class="card">
+    <h2>导航标签</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">选择希望在顶部导航显示的页面。取消勾选将隐藏对应标签。</p>
+    <div id="tabs-list" style="display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
+<div class="card">
+    <h2>关于</h2>
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.8">
+        <p><strong>DataVault</strong> — 李子的个人数据中心</p>
+        <p>版本：1.0</p>
+        <p>路径：~/project/yuholy/data-vault/</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+const TABS = [
+    { id: "home",     label: "🏠 总览",    desc: "数据总览和统计分析" },
+    { id: "links",    label: "📂 收藏",    desc: "链接收藏管理" },
+    { id: "expenses", label: "💰 消费",    desc: "消费记录管理" },
+    { id: "ports",    label: "🔌 端口",    desc: "机器端口监控" },
+];
+
+function getHidden() {
+    try { return JSON.parse(localStorage.getItem("datavault:hidden_tabs") || "[]"); }
+    catch(e) { return []; }
+}
+
+function setHidden(hidden) {
+    localStorage.setItem("datavault:hidden_tabs", JSON.stringify(hidden));
+}
+
+function render() {
+    const hidden = getHidden();
+    const container = document.getElementById("tabs-list");
+    container.innerHTML = TABS.map(tab => {
+        const isHidden = hidden.includes(tab.id);
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid ${isHidden ? 'var(--danger)' : 'transparent'}">
+            <div>
+                <div style="font-weight:600;font-size:14px">${tab.label}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${tab.desc}</div>
+            </div>
+            <label style="position:relative;width:44px;height:24px;cursor:pointer">
+                <input type="checkbox" ${!isHidden ? "checked" : ""} data-tab="${tab.id}"
+                    style="opacity:0;width:0;height:0;position:absolute"
+                    onchange="toggleTab(this)">
+                <span style="position:absolute;inset:0;border-radius:99px;background:${isHidden ? '#ccc' : 'var(--primary)'};transition:background 0.2s">
+                    <span style="position:absolute;top:2px;left:${isHidden ? '2px' : '22px'};width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></span>
+                </span>
+            </label>
+        </div>`;
+    }).join("");
+}
+
+function toggleTab(checkbox) {
+    const tab = checkbox.dataset.tab;
+    const hidden = getHidden();
+    if (checkbox.checked) {
+        // 显示
+        const idx = hidden.indexOf(tab);
+        if (idx > -1) hidden.splice(idx, 1);
+    } else {
+        // 隐藏
+        if (!hidden.includes(tab)) hidden.push(tab);
+    }
+    setHidden(hidden);
+    // 即时更新导航
+    const navItem = document.querySelector(`#nav-tabs [data-tab="${tab}"]`);
+    if (navItem) navItem.closest("li").style.display = checkbox.checked ? "" : "none";
+    // 更新边框
+    checkbox.closest("div").style.borderColor = checkbox.checked ? "transparent" : "var(--danger)";
+}
+
+function toggleTheme(checkbox) {
+    const isDark = checkbox.checked;
+    if (isDark) {
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("datavault:theme", "dark");
+        document.getElementById("theme-track").style.background = "var(--primary)";
+        document.getElementById("theme-thumb").style.left = "22px";
+    } else {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.setItem("datavault:theme", "light");
+        document.getElementById("theme-track").style.background = "";
+        document.getElementById("theme-thumb").style.left = "2px";
+    }
+    // 同步导航栏图标
+    const navToggle = document.getElementById("theme-toggle");
+    if (navToggle) navToggle.textContent = isDark ? "☀️" : "🌙";
+}
+
+function initThemeToggle() {
+    const isDark = localStorage.getItem("datavault:theme") === "dark";
+    document.getElementById("theme-dark").checked = isDark;
+    if (isDark) {
+        document.getElementById("theme-track").style.background = "var(--primary)";
+        document.getElementById("theme-thumb").style.left = "22px";
+    }
+}
+
+render();
+initThemeToggle();
+</script>
+{% endblock %}
