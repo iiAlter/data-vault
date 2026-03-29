@@ -69,7 +69,7 @@ def api_registry():
 @app.route("/api/stats")
 @require_auth
 def api_stats():
-    return jsonify(db.get_all_stats())
+    return jsonify(db.get_all_stats_fast())
 
 @app.route("/api/token-verify", methods=["POST"])
 def api_token_verify():
@@ -167,7 +167,28 @@ def login_page():
 @app.route("/")
 @require_page_auth
 def index():
-    return render_template("index.html")
+    # 服务端预加载 stats，消除白屏
+    try:
+        stats = db.get_all_stats_fast()
+    except Exception:
+        stats = {"links": {"total": 0, "by_category": [], "by_source": []},
+                 "expenses": {"total": 0, "by_category": [], "by_month": []}}
+
+    # 预计算百分比，避免模板里计算复杂
+    def add_pct(items, value_key, total):
+        t = total or 1
+        for item in items:
+            item['pct'] = max(4, min(100, int(item[value_key] / t * 100)))
+
+    add_pct(stats['links']['by_category'], 'count', stats['links']['total'])
+    add_pct(stats['links']['by_source'], 'count', stats['links']['total'])
+    add_pct(stats['expenses']['by_category'], 'total', stats['expenses']['total'])
+    if stats['expenses']['by_month']:
+        max_m = stats['expenses']['by_month'][0]['total'] or 1
+        for m in stats['expenses']['by_month']:
+            m['pct'] = max(4, min(100, int(m['total'] / max_m * 100)))
+
+    return render_template("index.html", stats=stats)
 
 @app.route("/links")
 @require_page_auth

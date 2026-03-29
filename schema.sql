@@ -36,6 +36,13 @@ CREATE TABLE IF NOT EXISTS expenses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 索引：加速统计查询
+CREATE INDEX IF NOT EXISTS idx_links_category ON links(category);
+CREATE INDEX IF NOT EXISTS idx_links_source ON links(source);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+CREATE INDEX IF NOT EXISTS idx_expenses_date_category ON expenses(date, category);
+
 -- 初始化数据类型注册
 INSERT OR IGNORE INTO data_registry (data_type, label, description, icon) VALUES
     ('links', '链接收藏', '李子收藏的链接', '🔗'),

@@ -6,18 +6,18 @@
 <div class="stats-grid">
     <div class="stat-card purple noisy">
         <div class="card-bg"></div>
-        <div class="label">📂 收藏总数</div>
-        <div class="value" id="stat-links-total">-</div>
-        <div class="sub" id="stat-links-categories">- 个分类</div>
+        <div class="label">收藏总数</div>
+        <div class="value">{{ stats.links.total }}</div>
+        <div class="sub">{{ stats.links.by_category|length }} 个分类</div>
         <div class="card-footer">
             <a href="/links" class="card-action">查看全部 →</a>
         </div>
     </div>
     <div class="stat-card green noisy">
         <div class="card-bg"></div>
-        <div class="label">💰 本月消费</div>
-        <div class="value money expense" id="stat-expenses-month">¥-</div>
-        <div class="sub" id="stat-expenses-categories">- 个分类</div>
+        <div class="label">本月消费</div>
+        <div class="value money expense">¥{{ "%.0f"|format(stats.expenses.total) }}</div>
+        <div class="sub">{{ stats.expenses.by_category|length }} 个分类</div>
         <div class="card-footer">
             <a href="/expenses" class="card-action green">+ 记一笔</a>
             <a href="/expenses" class="card-action ghost">报表 →</a>
@@ -25,14 +25,14 @@
     </div>
     <div class="stat-card orange noisy">
         <div class="card-bg"></div>
-        <div class="label">🌐 来源平台</div>
-        <div class="value" id="stat-sources-total">-</div>
+        <div class="label">来源平台</div>
+        <div class="value">{{ stats.links.by_source|length }}</div>
         <div class="sub">不同平台</div>
     </div>
     <div class="stat-card red noisy">
         <div class="card-bg"></div>
-        <div class="label">📅 最近收录</div>
-        <div class="value" id="stat-last-link" style="font-size:15px;word-break:break-all">-</div>
+        <div class="label">最近收录</div>
+        <div class="value" style="font-size:15px">{{ "有内容" if stats.links.total > 0 else "暂无" }}</div>
         <div class="sub">最新链接</div>
     </div>
 </div>
@@ -40,88 +40,42 @@
 <!-- 分析图表 -->
 <div class="chart-grid">
     <div class="card chart-card">
-        <div class="card-header">
-            <h2>🌐 来源分布</h2>
-        </div>
-        <div id="links-by-source"></div>
+        <div class="card-header"><h2>🌐 来源分布</h2></div>
+        <div>{% if stats.links.by_source %}{% for item in stats.links.by_source %}
+            <div class="bar-item">
+                <div class="bar-label">{{ item.source or "未知" }}</div>
+                <div class="bar-track"><div class="bar-fill {{ ['purple','green','orange','red'][loop.index0 % 4] }}" style="width:{{ item.pct }}%"></div></div>
+                <div class="bar-value">{{ item.count }}</div>
+            </div>{% endfor %}{% else %}<div class="empty"><div class="empty-icon">📭</div>暂无数据</div>{% endif %}</div>
     </div>
     <div class="card chart-card">
-        <div class="card-header">
-            <h2>🏷️ 分类</h2>
-        </div>
-        <div id="links-by-category"></div>
+        <div class="card-header"><h2>🏷️ 分类</h2></div>
+        <div>{% if stats.links.by_category %}{% for item in stats.links.by_category %}
+            <div class="bar-item">
+                <div class="bar-label">{{ item.category or "未知" }}</div>
+                <div class="bar-track"><div class="bar-fill {{ ['purple','green','orange','red'][loop.index0 % 4] }}" style="width:{{ item.pct }}%"></div></div>
+                <div class="bar-value">{{ item.count }}</div>
+            </div>{% endfor %}{% else %}<div class="empty"><div class="empty-icon">📭</div>暂无数据</div>{% endif %}</div>
     </div>
     <div class="card chart-card">
-        <div class="card-header">
-            <h2>💸 消费分类</h2>
-        </div>
-        <div id="expenses-by-category"></div>
+        <div class="card-header"><h2>💸 消费分类</h2></div>
+        <div>{% if stats.expenses.by_category %}{% for item in stats.expenses.by_category %}
+            <div class="bar-item">
+                <div class="bar-label">{{ item.category or "未知" }}</div>
+                <div class="bar-track"><div class="bar-fill {{ ['purple','green','orange','red'][loop.index0 % 4] }}" style="width:{{ item.pct }}%"></div></div>
+                <div class="bar-value">¥{{ "%.0f"|format(item.total) }}</div>
+            </div>{% endfor %}{% else %}<div class="empty"><div class="empty-icon">📭</div>暂无数据</div>{% endif %}</div>
     </div>
     <div class="card chart-card">
-        <div class="card-header">
-            <h2>📈 月度趋势</h2>
-        </div>
-        <div id="expenses-trend"></div>
+        <div class="card-header"><h2>📈 月度趋势</h2></div>
+        <div>{% if stats.expenses.by_month %}{% for item in stats.expenses.by_month|reverse %}
+            <div class="bar-item">
+                <div class="bar-label">{{ item.month }}</div>
+                <div class="bar-track"><div class="bar-fill {{ ['purple','green','orange','red'][loop.index0 % 4] }}" style="width:{{ item.pct }}%"></div></div>
+                <div class="bar-value">¥{{ "%.0f"|format(item.total) }}</div>
+            </div>{% endfor %}{% else %}<div class="empty"><div class="empty-icon">📭</div>暂无数据</div>{% endif %}</div>
     </div>
 </div>
 {% endblock %}
 
-{% block script %}
-<script>
-const COLORS = ['purple', 'green', 'orange', 'red'];
-
-async function loadStats() {
-    const stats = await api("/api/stats");
-    const links = stats.links;
-    const expenses = stats.expenses;
-
-    // 统计卡片
-    document.getElementById("stat-links-total").textContent = links.total;
-    document.getElementById("stat-links-categories").textContent = links.by_category.length + " 个分类";
-    document.getElementById("stat-expenses-month").textContent = "¥" + (expenses.total || 0).toLocaleString();
-    document.getElementById("stat-expenses-categories").textContent = (expenses.by_category?.length || 0) + " 个分类";
-    document.getElementById("stat-sources-total").textContent = links.by_source?.length || 0;
-
-    // 最近收录
-    if (links.total > 0) {
-        const lastLink = links.by_source[0]; // just show placeholder
-        document.getElementById("stat-last-link").textContent = "有内容";
-    }
-
-    // 来源 + 分类
-    renderBars("links-by-source", links.by_source || [], "source", "count", links.total || 1);
-    renderBars("links-by-category", links.by_category || [], "category", "count", links.total || 1);
-    renderBars("expenses-by-category", expenses.by_category || [], "category", "total", expenses.total || 1);
-
-    // 趋势
-    const trendData = (expenses.by_month || []).slice(0, 6).reverse();
-    const trendMax = trendData[0]?.total || 1;
-    renderBars("expenses-trend", trendData, "month", "total", trendMax, "money");
-}
-
-function renderBars(containerId, data, labelKey, valueKey, maxValue, displayMode) {
-    const container = document.getElementById(containerId);
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无数据</div>';
-        return;
-    }
-    container.innerHTML = data.map((item, i) => {
-        const value = item[valueKey];
-        const pct = Math.max(4, Math.round((value / maxValue) * 100));
-        const label = item[labelKey] || "未知";
-        const color = COLORS[i % COLORS.length];
-        let displayValue = value;
-        if (displayMode === "money" || valueKey === "total") {
-            displayValue = "¥" + Math.round(value).toLocaleString();
-        }
-        return `<div class="bar-item">
-            <div class="bar-label">${label}</div>
-            <div class="bar-track"><div class="bar-fill ${color}" style="width:${pct}%"></div></div>
-            <div class="bar-value">${displayValue}</div>
-        </div>`;
-    }).join("");
-}
-
-loadStats();
-</script>
-{% endblock %}
+{% block script %}{% endblock %}

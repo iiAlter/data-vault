@@ -142,3 +142,26 @@ def get_all_stats():
         "links": get_link_stats(),
         "expenses": get_expense_stats()
     }
+
+def get_all_stats_fast():
+    """合并版全局统计 — 单次连接，顺序执行所有查询"""
+    conn = get_conn()
+    links_total = conn.execute("SELECT COUNT(*) as total FROM links").fetchone()[0]
+    links_cat   = [dict(r) for r in conn.execute("SELECT category, COUNT(*) as count FROM links GROUP BY category ORDER BY count DESC").fetchall()]
+    links_src   = [dict(r) for r in conn.execute("SELECT source, COUNT(*) as count FROM links GROUP BY source ORDER BY count DESC LIMIT 10").fetchall()]
+    etotal      = conn.execute("SELECT SUM(amount) as total FROM expenses").fetchone()[0] or 0
+    exp_cat     = [dict(r) for r in conn.execute("SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses GROUP BY category ORDER BY total DESC").fetchall()]
+    exp_month   = [dict(r) for r in conn.execute("SELECT strftime('%Y-%m', date) as month, SUM(amount) as total FROM expenses GROUP BY month ORDER BY month DESC LIMIT 12").fetchall()]
+    conn.close()
+    return {
+        "links": {
+            "total": links_total,
+            "by_category": links_cat,
+            "by_source": links_src,
+        },
+        "expenses": {
+            "total": round(etotal, 2),
+            "by_category": exp_cat,
+            "by_month": exp_month,
+        }
+    }
