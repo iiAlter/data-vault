@@ -9,12 +9,19 @@
         <div class="label">📂 收藏总数</div>
         <div class="value" id="stat-links-total">-</div>
         <div class="sub" id="stat-links-categories">- 个分类</div>
+        <div class="card-footer">
+            <a href="/links" class="card-action">查看全部 →</a>
+        </div>
     </div>
     <div class="stat-card green noisy">
         <div class="card-bg"></div>
         <div class="label">💰 本月消费</div>
-        <div class="value money income" id="stat-expenses-month">¥-</div>
+        <div class="value money expense" id="stat-expenses-month">¥-</div>
         <div class="sub" id="stat-expenses-categories">- 个分类</div>
+        <div class="card-footer">
+            <a href="/expenses" class="card-action green">+ 记一笔</a>
+            <a href="/expenses" class="card-action ghost">报表 →</a>
+        </div>
     </div>
     <div class="stat-card orange noisy">
         <div class="card-bg"></div>
@@ -25,34 +32,34 @@
     <div class="stat-card red noisy">
         <div class="card-bg"></div>
         <div class="label">📅 最近收录</div>
-        <div class="value" id="stat-last-link" style="font-size:16px;word-break:break-all">-</div>
+        <div class="value" id="stat-last-link" style="font-size:15px;word-break:break-all">-</div>
         <div class="sub">最新链接</div>
     </div>
 </div>
 
 <!-- 分析图表 -->
 <div class="chart-grid">
-    <div class="card">
+    <div class="card chart-card">
         <div class="card-header">
             <h2>🌐 来源分布</h2>
         </div>
         <div id="links-by-source"></div>
     </div>
-    <div class="card">
+    <div class="card chart-card">
         <div class="card-header">
             <h2>🏷️ 分类</h2>
         </div>
         <div id="links-by-category"></div>
     </div>
-    <div class="card">
+    <div class="card chart-card">
         <div class="card-header">
             <h2>💸 消费分类</h2>
         </div>
         <div id="expenses-by-category"></div>
     </div>
-    <div class="card">
+    <div class="card chart-card">
         <div class="card-header">
-            <h2>📈 月度消费趋势</h2>
+            <h2>📈 月度趋势</h2>
         </div>
         <div id="expenses-trend"></div>
     </div>

@@ -344,8 +344,10 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
         }
+
+        /* Refined action buttons */
         button {
-            padding: 9px 18px;
+            padding: 9px 20px;
             background: var(--primary);
             color: #fff;
             border: none;
@@ -354,10 +356,47 @@
             font-weight: 500;
             font-family: inherit;
             cursor: pointer;
-            transition: background 0.15s, transform 0.1s;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+            box-shadow: 0 1px 3px rgba(99,102,241,0.25);
+            letter-spacing: 0.1px;
         }
-        button:hover { background: var(--primary-dark); }
-        button:active { transform: scale(0.98); }
+        button:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+            transform: translateY(-1px);
+        }
+        button:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 3px rgba(99,102,241,0.2); }
+
+        /* Secondary / ghost button */
+        button.ghost {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+            box-shadow: none;
+        }
+        button.ghost:hover {
+            background: rgba(99,102,241,0.06);
+            box-shadow: none;
+        }
+        button.ghost:active { background: rgba(99,102,241,0.1); }
+
+        /* Danger button */
+        button.danger {
+            background: var(--danger);
+            box-shadow: 0 1px 3px rgba(244,63,94,0.25);
+        }
+        button.danger:hover {
+            box-shadow: 0 4px 12px rgba(244,63,94,0.35);
+        }
+
+        /* Icon button */
+        button.icon-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         /* ===== EMPTY STATE ===== */
         .empty {
@@ -435,6 +474,63 @@
         /* ===== SECTION TITLE ===== */
         h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 20px; }
         h3 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ===== STAT CARD FOOTER (action links) ===== */
+        .card-footer {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .card-action {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            background: rgba(99,102,241,0.1);
+            color: var(--primary);
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .card-action:hover {
+            background: rgba(99,102,241,0.18);
+            transform: translateY(-1px);
+        }
+        .card-action.green {
+            background: rgba(16,185,129,0.1);
+            color: var(--accent);
+        }
+        .card-action.green:hover {
+            background: rgba(16,185,129,0.18);
+        }
+        .card-action.ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .card-action.ghost:hover {
+            background: var(--bg);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ===== CHART CARD refinement ===== */
+        .chart-card .card-header {
+            margin-bottom: 16px;
+        }
+        .chart-card .card-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 600px) {
