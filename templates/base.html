@@ -645,16 +645,16 @@
                 Data<span>Vault</span>
             </a>
             <ul id="nav-tabs">
-                <li><a href="/" class="{% if request.path == '/' %}active{% endif %}" data-tab="home">🏠 总览</a></li>
-                <li><a href="/links" class="{% if request.path == '/links' %}active{% endif %}" data-tab="links">📂 收藏</a></li>
-                <li><a href="/expenses" class="{% if request.path == '/expenses' %}active{% endif %}" data-tab="expenses">💰 消费</a></li>
-                <li><a href="/ports" class="{% if request.path == '/ports' %}active{% endif %}" data-tab="ports">🔌 端口</a></li>
+                <li><a href="/" class="{% if request.path == '/' %}active{% endif %}" data-tab="home">总览</a></li>
+                <li><a href="/links" class="{% if request.path == '/links' %}active{% endif %}" data-tab="links">收藏</a></li>
+                <li><a href="/expenses" class="{% if request.path == '/expenses' %}active{% endif %}" data-tab="expenses">消费</a></li>
+                <li><a href="/ports" class="{% if request.path == '/ports' %}active{% endif %}" data-tab="ports">端口</a></li>
             </ul>
             <div class="nav-right">
                 <div class="divider"></div>
-                <a href="/settings" class="icon-btn {% if request.path == '/settings' %}active{% endif %}">⚙️ 设置</a>
-                <span class="icon-btn theme" id="theme-toggle" title="切换主题">🌙</span>
-                <span class="icon-btn danger" id="logout-btn" onclick="logout()" title="退出登录">🔒</span>
+                <a href="/settings" class="icon-btn {% if request.path == '/settings' %}active{% endif %}">设置</a>
+                <span class="icon-btn theme" id="theme-toggle" title="切换主题">深色</span>
+                <span class="icon-btn danger" id="logout-btn" onclick="logout()" title="退出登录">退出</span>
             </div>
         </div>
     </nav>
@@ -724,7 +724,7 @@
         if (theme === "dark") {
             document.documentElement.setAttribute("data-theme", "dark");
             const toggle = document.getElementById("theme-toggle");
-            if (toggle) toggle.innerHTML = "☀️";
+            if (toggle) toggle.innerHTML = "亮色";
         }
     })();
 
@@ -733,11 +733,11 @@
         if (isDark) {
             document.documentElement.removeAttribute("data-theme");
             localStorage.setItem("datavault:theme", "light");
-            this.innerHTML = "🌙";
+            this.innerHTML = "深色";
         } else {
             document.documentElement.setAttribute("data-theme", "dark");
             localStorage.setItem("datavault:theme", "dark");
-            this.innerHTML = "☀️";
+            this.innerHTML = "浅色";
         }
     });
     </script>
