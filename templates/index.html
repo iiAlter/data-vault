@@ -19,7 +19,7 @@
         <div class="value money expense">¥{{ "%.0f"|format(stats.expenses.total) }}</div>
         <div class="sub">{{ stats.expenses.by_category|length }} 个分类</div>
         <div class="card-footer">
-            <a href="/expenses" class="card-action green">+ 记一笔</a>
+            <button onclick="openAddExpense()" class="card-action green" style="border:none;cursor:pointer;font-family:inherit">+ 记一笔</button>
             <a href="/expenses" class="card-action ghost">报表 →</a>
         </div>
     </div>
