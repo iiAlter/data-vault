@@ -12,6 +12,7 @@
         :root {
             --bg: #f8f7fa;
             --surface: #ffffff;
+            --surface-rgb: 255, 255, 255;
             --primary: #6366f1;
             --primary-light: #818cf8;
             --primary-dark: #4f46e5;
@@ -32,6 +33,7 @@
         [data-theme="dark"] {
             --bg: #11111a;
             --surface: #1c1c27;
+            --surface-rgb: 28, 28, 39;
             --primary: #7c7ffa;
             --primary-light: #a5a7fb;
             --primary-dark: #5b5ce0;
@@ -58,11 +60,16 @@
 
         /* ===== NAV ===== */
         nav {
-            background: var(--surface);
+            background: rgba(var(--surface-rgb, 255,255,255), 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+        [data-theme="dark"] nav {
+            background: rgba(28,28,39, 0.85);
         }
         nav .inner {
             max-width: 1100px;
@@ -70,52 +77,116 @@
             padding: 0 24px;
             display: flex;
             align-items: center;
-            gap: 32px;
+            gap: 0;
+            height: 60px;
         }
         nav .logo {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             letter-spacing: -0.3px;
-            padding: 18px 0;
-        }
-        nav .logo span { color: var(--primary); }
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 4px;
-        }
-        nav a {
-            color: var(--text-secondary);
+            color: var(--text);
             text-decoration: none;
-            padding: 8px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             gap: 6px;
+            margin-right: 32px;
+            flex-shrink: 0;
         }
-        nav a:hover { color: var(--text); background: var(--bg); }
-        nav a.active {
+        nav .logo-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+        }
+        nav .logo span { color: var(--primary); }
+
+        /* Nav tabs — pill indicator style */
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2px;
+            height: 100%;
+            align-items: stretch;
+        }
+        nav ul li {
+            display: flex;
+            align-items: stretch;
+        }
+        nav ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0 14px;
+            font-size: 13.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            transition: color 0.15s;
+            border-radius: 0;
+        }
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 99px 99px 0 0;
+            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        nav ul li a:hover { color: var(--text); }
+        nav ul li a:hover::after { width: 40%; }
+        nav ul li a.active {
             color: var(--primary);
-            background: rgba(99,102,241,0.08);
+            font-weight: 600;
         }
+        nav ul li a.active::after { width: 60%; }
+
+        /* Right side controls */
         nav .nav-right {
             margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        nav .settings-btn {
-            color: #aaa;
+        nav .icon-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
             text-decoration: none;
-            padding: 15px 12px;
-            display: block;
-            font-size: 16px;
+            font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
-            transition: color 0.15s;
+            transition: all 0.15s;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
         }
-        nav .settings-btn:hover { color: #fff; }
-        #theme-toggle { cursor: pointer; transition: color 0.15s; }
-        #theme-toggle:hover { color: #fbbf24; }
+        nav .icon-btn:hover {
+            color: var(--text);
+            background: var(--bg);
+        }
+        nav .icon-btn.danger:hover {
+            color: var(--danger);
+            background: rgba(244,63,94,0.08);
+        }
+        nav .icon-btn.theme:hover {
+            color: #fbbf24;
+        }
+        nav .divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 6px;
+            flex-shrink: 0;
+        }
 
         /* ===== LAYOUT ===== */
         .container {
@@ -534,9 +605,14 @@
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 600px) {
-            nav .inner { gap: 0; padding: 0 12px; }
-            nav .logo { font-size: 16px; padding: 12px 0; }
-            nav a { padding: 12px 8px; font-size: 13px; }
+            nav .inner { gap: 0; padding: 0 12px; height: 52px; }
+            nav .logo { font-size: 15px; margin-right: 16px; }
+            nav ul li a { padding: 0 10px; font-size: 13px; }
+            nav ul li a .tab-label { display: none; }
+            nav ul li a::after { bottom: 0; }
+            nav .icon-btn span { display: none; }
+            nav .icon-btn { padding: 6px 8px; }
+            nav .divider { margin: 0 2px; }
             .container { padding: 16px 12px; }
             h1 { font-size: 18px; }
             .page-header h1 { font-size: 16px; white-space: normal; }
@@ -564,16 +640,22 @@
 <body>
     <nav>
         <div class="inner">
-            <div class="logo">Data<span>Vault</span></div>
+            <a href="/" class="logo">
+                <span class="logo-dot"></span>
+                Data<span>Vault</span>
+            </a>
             <ul id="nav-tabs">
                 <li><a href="/" class="{% if request.path == '/' %}active{% endif %}" data-tab="home">🏠 总览</a></li>
                 <li><a href="/links" class="{% if request.path == '/links' %}active{% endif %}" data-tab="links">📂 收藏</a></li>
                 <li><a href="/expenses" class="{% if request.path == '/expenses' %}active{% endif %}" data-tab="expenses">💰 消费</a></li>
                 <li><a href="/ports" class="{% if request.path == '/ports' %}active{% endif %}" data-tab="ports">🔌 端口</a></li>
             </ul>
-            <a href="/settings" class="settings-btn {% if request.path == '/settings' %}active{% endif %}">⚙️</a>
-            <span class="settings-btn" id="logout-btn" style="padding:15px 6px;user-select:none;cursor:pointer" title="退出登录" onclick="logout()">🔒</span>
-            <span class="settings-btn" id="theme-toggle" style="padding:15px 8px;user-select:none" title="切换主题">🌙</span>
+            <div class="nav-right">
+                <div class="divider"></div>
+                <a href="/settings" class="icon-btn {% if request.path == '/settings' %}active{% endif %}">⚙️ 设置</a>
+                <span class="icon-btn theme" id="theme-toggle" title="切换主题">🌙</span>
+                <span class="icon-btn danger" id="logout-btn" onclick="logout()" title="退出登录">🔒</span>
+            </div>
         </div>
     </nav>
     <div class="container">
@@ -642,20 +724,20 @@
         if (theme === "dark") {
             document.documentElement.setAttribute("data-theme", "dark");
             const toggle = document.getElementById("theme-toggle");
-            if (toggle) toggle.textContent = "☀️";
+            if (toggle) toggle.innerHTML = "☀️";
         }
     })();
 
-    document.getElementById("theme-toggle").addEventListener("click", function() {
+    document.getElementById("theme-toggle")?.addEventListener("click", function() {
         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
         if (isDark) {
             document.documentElement.removeAttribute("data-theme");
             localStorage.setItem("datavault:theme", "light");
-            this.textContent = "🌙";
+            this.innerHTML = "🌙";
         } else {
             document.documentElement.setAttribute("data-theme", "dark");
             localStorage.setItem("datavault:theme", "dark");
-            this.textContent = "☀️";
+            this.innerHTML = "☀️";
         }
     });
     </script>
