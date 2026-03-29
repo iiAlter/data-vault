@@ -56,9 +56,10 @@ async function loadLinks() {
         const titleHtml = isUrl
             ? `<a href="${link.url}" target="_blank" rel="noopener">${link.title}</a>`
             : `<span style="cursor:default">${link.title}</span>`;
-        const detailHtml = isUrl
-            ? ``
-            : `<div class="copy-wrap"><div class="code-block" data-code-id="${link.id}">${link.url}</div><button class="copy-btn" data-copy="${link.id}">复制</button></div>`;
+        // 所有收藏都显示复制按钮，URL 类型额外显示代码块
+        const detailHtml = !isUrl
+            ? `<div class="copy-wrap"><div class="code-block" data-code-id="${link.id}">${link.url}</div><button class="copy-btn" data-copy="${link.id}">复制</button></div>`
+            : `<div class="copy-wrap"><div class="code-block" data-code-id="${link.id}" style="font-size:12px;padding:8px 12px;color:var(--text-muted)">${link.url}</div><button class="copy-btn" data-copy="${link.id}">复制</button></div>`;
 
         return `<div class="item">
             <div class="title">
@@ -109,20 +110,31 @@ document.addEventListener("click", e => {
 });
 
 // 复制代码块
+function copyToClipboard(text, btn) {
+    // 优先用 Clipboard API（需要 HTTPS），降级用 textarea + execCommand
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showCopied(btn));
+    } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); showCopied(btn); } catch(e) {}
+        document.body.removeChild(ta);
+    }
+}
+function showCopied(btn) {
+    btn.textContent = "已复制";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "复制"; btn.classList.remove("copied"); }, 1500);
+}
 document.addEventListener("click", e => {
     const btn = e.target.closest("[data-copy]");
     if (!btn) return;
-    const id = btn.dataset.copy;
-    const el = document.querySelector(`[data-code-id="${id}"]`);
-    if (!el) return;
-    navigator.clipboard.writeText(el.textContent).then(() => {
-        btn.textContent = "已复制";
-        btn.classList.add("copied");
-        setTimeout(() => {
-            btn.textContent = "复制";
-            btn.classList.remove("copied");
-        }, 1500);
-    });
+    const codeEl = document.querySelector(`[data-code-id="${btn.dataset.copy}"]`);
+    if (!codeEl) return;
+    copyToClipboard(codeEl.textContent, btn);
 });
 
 loadLinks();
