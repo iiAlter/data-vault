@@ -476,6 +476,7 @@
                 <li><a href="/ports" class="{% if request.path == '/ports' %}active{% endif %}" data-tab="ports">🔌 端口</a></li>
             </ul>
             <a href="/settings" class="settings-btn {% if request.path == '/settings' %}active{% endif %}">⚙️</a>
+            <span class="settings-btn" id="logout-btn" style="padding:15px 6px;user-select:none;cursor:pointer" title="退出登录" onclick="logout()">🔒</span>
             <span class="settings-btn" id="theme-toggle" style="padding:15px 8px;user-select:none" title="切换主题">🌙</span>
         </div>
     </nav>
@@ -483,12 +484,52 @@
         {% block content %}{% endblock %}
     </div>
     <script>
+    // ============ Auth ============
+    (function checkAuth() {
+        const token = sessionStorage.getItem("dv_token");
+        if (!token) {
+            window.location.href = "/login";
+            return;
+        }
+        // Verify token with server
+        fetch("/api/me", {
+            headers: { "Authorization": "Bearer " + token }
+        }).then(r => {
+            if (!r.ok) {
+                sessionStorage.removeItem("dv_token");
+                window.location.href = "/login";
+            }
+        }).catch(() => {
+            // Network error - allow retry on next interaction
+        });
+    })();
+
+    // ============ API Helper (auto-attaches Bearer token) ============
     async function api(url) {
-        const res = await fetch(url);
+        const token = sessionStorage.getItem("dv_token") || "";
+        const res = await fetch(url, {
+            headers: token ? { "Authorization": "Bearer " + token } : {}
+        });
+        if (res.status === 401) {
+            sessionStorage.removeItem("dv_token");
+            window.location.href = "/login";
+            return { error: "Unauthorized" };
+        }
         return res.json();
     }
 
-    // Tab visibility control
+    // ============ Logout ============
+    async function logout() {
+        const token = sessionStorage.getItem("dv_token") || "";
+        await fetch("/api/logout", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        });
+        sessionStorage.removeItem("dv_token");
+        window.location.href = "/login";
+    }
+
+    // ============ Tab Visibility + Theme ============
     (function() {
         try {
             const hidden = JSON.parse(localStorage.getItem("datavault:hidden_tabs") || "[]");
@@ -501,15 +542,14 @@
             }
         } catch(e) {}
 
-        // Theme restoration (must be before paint)
         const theme = localStorage.getItem("datavault:theme") || "light";
         if (theme === "dark") {
             document.documentElement.setAttribute("data-theme", "dark");
-            document.getElementById("theme-toggle").textContent = "☀️";
+            const toggle = document.getElementById("theme-toggle");
+            if (toggle) toggle.textContent = "☀️";
         }
     })();
 
-    // Theme toggle
     document.getElementById("theme-toggle").addEventListener("click", function() {
         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
         if (isDark) {
