@@ -4,8 +4,56 @@
 
 <div class="page-header">
     <h1>💰 消费记录</h1>
-    <div style="font-size:13px; color:var(--text-muted)">
-        本月合计：<span id="month-total" class="money expense">¥-</span>
+    <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:13px; color:var(--text-muted)">
+            本月合计：<span id="month-total" class="money expense">¥-</span>
+        </div>
+        <button onclick="openAddExpense()" class="icon-btn" style="background:var(--primary);color:#fff;padding:7px 16px;border-radius:99px;box-shadow:0 1px 4px rgba(99,102,241,0.3)">+ 记一笔</button>
+    </div>
+</div>
+
+<!-- 添加消费弹窗 -->
+<div id="expense-modal" class="modal" style="display:none">
+    <div class="modal-backdrop" onclick="closeExpenseModal()"></div>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>记一笔</h3>
+            <span class="modal-close" onclick="closeExpenseModal()">&times;</span>
+        </div>
+        <form id="expense-form" onsubmit="submitExpense(event)">
+            <div class="form-group">
+                <label>金额</label>
+                <input type="number" id="exp-amount" step="0.01" min="0" placeholder="0.00" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <select id="exp-category" required>
+                    <option value="">请选择</option>
+                    <option value="餐饮">餐饮</option>
+                    <option value="交通">交通</option>
+                    <option value="购物">购物</option>
+                    <option value="娱乐">娱乐</option>
+                    <option value="居住">居住</option>
+                    <option value="医疗">医疗</option>
+                    <option value="教育">教育</option>
+                    <option value="通讯">通讯</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>说明</label>
+                <input type="text" id="exp-desc" placeholder="可选" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="exp-date">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="ghost" onclick="closeExpenseModal()">取消</button>
+                <button type="submit">保存</button>
+            </div>
+            <div id="exp-error" style="color:var(--danger);font-size:13px;margin-top:8px;display:none"></div>
+        </form>
     </div>
 </div>
 
@@ -88,5 +136,41 @@ document.getElementById("month-filter").value = now.toISOString().slice(0, 7);
 
 loadExpenses();
 loadCategories();
+
+function openAddExpense() {
+    document.getElementById("expense-modal").style.display = "flex";
+    document.getElementById("exp-amount").value = "";
+    document.getElementById("exp-category").value = "";
+    document.getElementById("exp-desc").value = "";
+    document.getElementById("exp-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("exp-error").style.display = "none";
+    document.getElementById("exp-amount").focus();
+}
+function closeExpenseModal() {
+    document.getElementById("expense-modal").style.display = "none";
+}
+async function submitExpense(e) {
+    e.preventDefault();
+    const amount = parseFloat(document.getElementById("exp-amount").value);
+    const category = document.getElementById("exp-category").value;
+    const description = document.getElementById("exp-desc").value.trim();
+    const date = document.getElementById("exp-date").value;
+    const errorEl = document.getElementById("exp-error");
+    if (!amount || amount <= 0) {
+        errorEl.textContent = "请输入有效金额"; errorEl.style.display = "block"; return;
+    }
+    const token = sessionStorage.getItem("dv_token") || "";
+    const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ amount, category, description, date })
+    });
+    if (res.ok) {
+        closeExpenseModal();
+        loadExpenses();
+    } else {
+        errorEl.textContent = "保存失败，请重试"; errorEl.style.display = "block";
+    }
+}
 </script>
 {% endblock %}
